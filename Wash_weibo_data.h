@@ -29,8 +29,10 @@ namespace BasicPath {
 	// step three
 	const std::string EventExtractRehashDelRepPre = FilePrefix + "data_washed\\event_del_repeat\\";
 	const std::string EventExtractRehashDelRepTimePre = FilePrefix + "data_washed\\event_del_repeat_time\\";
-	
 	const std::string UserOccurredReDelRepPre = FilePrefix + "data_washed\\user_occurred_rehashed_del_rep\\";
+
+	// analysis
+	const std::string calUserOverlapCoeffiBetDifEvePre = FilePrefix + "data_washed\\analysis_result\\";
 
 
 	// base
@@ -91,6 +93,29 @@ namespace BasicPath {
 		"Zhouqu landslide"
 	};
 
+	const std::vector<std::string> vecBigEventFiles = {
+		"House prices",
+		"Guo Meimei",
+		"death of Muammar Gaddafi",
+		"the death of Osama Bin Laden",
+		"case of running fast car in Heibei University",
+		"Wenzhou train collision",
+		"Tang Jun educatioin qualification fake",
+		"Xiaomi release",
+		"the death of Kim Jongil",
+		"family violence of Li Yang",
+		"Qian Yunhui",
+		"China Petro chemical Co. Ltd",
+		"Death of Wang Yue",
+		"Yushu earthquake",
+		"Yao Ming retire",
+		"earthquake of Yunnan Yingjiang",
+		"Windows Phone release",
+		"Chongqing gang trials",
+		"individual income tax threshold rise up to 3500",
+		"incident of self-burning at Yancheng, Jangsu",
+		"Foxconn worker falls to death"
+	};
 
 };
 
@@ -127,14 +152,14 @@ public:
 	bool extractUidRtUidFromString(const std::string &, std::vector<std::string> &, std::string &);
 	bool extractTimeFromString(const std::string &, WeiboTime &);
 
-	//step two
+	// step two
 	bool runStepTwo();
 	
 	bool filterTheOriginUserAccordEvent(const std::string &, const std::string &, const std::string &);
 	bool whetherExistInSet(std::multiset<std::string> &, const std::string &);
 	std::string convertIntToString(const int);
 
-	//step three
+	// step three
 	bool runStepThree();
 
 	bool readUserMapRehashEvent(std::map<std::string, unsigned> &, const std::string &, const std::string &, const std::string &);
@@ -143,6 +168,16 @@ public:
 
 	bool delRepeatEventEdge(const std::string &, const std::string &, const std::string &);
 	bool delRepeatUserEdge(const std::string &, const std::string &);
+
+
+	// network test
+	// max user = 1767200
+	bool testEdge();
+
+	bool analysisUserOverlap();
+	bool calUserOverCoeffiBetDifEvents(const std::string &, const std::string &);
+	template<typename T> bool isInSet(std::set<T> &, const T);
+	template<typename T> double calculateSet(std::set<T> &, std::set<T> &);
 
 };
 

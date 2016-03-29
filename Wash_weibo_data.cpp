@@ -1,4 +1,3 @@
-#include "Wash_weibo_data.h"
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -6,6 +5,9 @@
 #include <set>
 #include <map>
 #include <utility>
+#include <algorithm>
+
+#include "Wash_weibo_data.h"
 
 using namespace BasicPath;
 
@@ -36,8 +38,8 @@ bool operator==(const WeiboTime &l, const WeiboTime &r)
 }
 
 /*
-*	write to ostream
-*/
+ *	write to ostream
+ */
 std::ostream& operator<<(std::ostream &os, const WeiboTime &u)
 {
 	os << u.year << " " << u.month << " " << u.day << " " << u.hour << " " << u.minute << " " << u.second;
@@ -68,10 +70,11 @@ bool WeiboTime::setContri(std::vector<unsigned> &vec)
 // ================================= WeiboDataWash ========================================== //
 
 /*
-*	step one :
-*	extract from : ./data_origin/event_origin/
-*	save to : ./data_washed/event_extract/ && ./data_washed/event_extract_with_time/
-*/
+ * ============================================================================================================================
+ *	step one :
+ *	extract from : ./data_origin/event_origin/
+ *	save to : ./data_washed/event_extract/ && ./data_washed/event_extract_with_time/
+ */
 bool WeiboDataWash::runStepOne()
 {
 	if (processOriginEventExtractEdge(BasicPath::OriginEventFilePrefix, BasicPath::EventExtractPrefix, BasicPath::EventExtractWithTimePrefix) == false) {
@@ -269,6 +272,7 @@ bool WeiboDataWash::extractTimeFromString(const std::string &source, WeiboTime &
 }
 
 /*
+ * ======================================================================================================================
  *	step two :
  *	according to the user occurred in all of the Events
  *	filter the origin user files , save what we want
@@ -276,7 +280,7 @@ bool WeiboDataWash::extractTimeFromString(const std::string &source, WeiboTime &
  *	to	./data_washed/user_occurred/
  */
 bool WeiboDataWash::runStepTwo()
-{
+{ 
 	if (filterTheOriginUserAccordEvent(BasicPath::EventExtractPrefix, BasicPath::OriginUserFilePrefix, BasicPath::UserOccurredPrefix) == false) {
 		std::cerr << "WeiboWash::stepTwo() error." << std::endl;
 		return false;
@@ -362,6 +366,15 @@ bool WeiboDataWash::filterTheOriginUserAccordEvent(const std::string &sourceEven
 /*
  *	if string is not in set , return true
  */
+/*
+template<typename T> bool whetherExistInSet(std::multiset<T> &users, const T &name)
+{
+	if (users.find(name) == user.end())
+		return false;
+	else
+		return true;
+}
+*/
 bool WeiboDataWash::whetherExistInSet(std::multiset<std::string> &users, const std::string &name)
 {
 	auto iter = users.begin();
@@ -379,6 +392,7 @@ std::string WeiboDataWash::convertIntToString(const int u)
 }
 
 /*
+ * ==================================================================================================================================
  *	step three:
  *	1:	read Event, build map, rehash the user string, obtain the new Event
  *		from	./data_washed/event_extract_with_time
@@ -400,13 +414,13 @@ bool WeiboDataWash::runStepThree()
 	std::map<std::string, unsigned> userMap;
 	if (readUserMapRehashEvent(userMap, EventExtractWithTimePrefix, EventExtractRehashPrefix, EventExtractRehashTimePrefix) == false)
 		return false;
-	if (accordUserMapWashRehashUser(userMap, UserOccurredPrefix, UserOccurredRehashPrefix) == false)
-		return false;
+	//if (accordUserMapWashRehashUser(userMap, UserOccurredPrefix, UserOccurredRehashPrefix) == false)
+	//	return false;
 	
-	if (delRepeatEventEdge(EventExtractRehashTimePrefix, EventExtractRehashDelRepPre, EventExtractRehashDelRepTimePre) == false)
-		return false;
-	if (delRepeatUserEdge(UserOccurredRehashPrefix, UserOccurredReDelRepPre) == false)
-		return false;
+	//if (delRepeatEventEdge(EventExtractRehashTimePrefix, EventExtractRehashDelRepPre, EventExtractRehashDelRepTimePre) == false)
+		//return false;
+	//if (delRepeatUserEdge(UserOccurredRehashPrefix, UserOccurredReDelRepPre) == false)
+		//return false;
 
 	return true;
 }
@@ -560,8 +574,189 @@ bool WeiboDataWash::delRepeatUserEdge(const std::string &srcUserRehashPre, const
 			else
 				continue;
 		}
-
 		inputFile.close(), outputFile.close();
 	}
 	return true;
+}
+
+/*
+ * ================================================ network test ==================================================
+ */
+bool WeiboDataWash::testEdge()
+{
+	unsigned minNode = 10000000, maxNode = 0;
+
+	for (const auto &file : vecEventOriginFiles) {
+		std::cout << "read:" << file << std::endl;
+
+		std::fstream inputFile;
+		inputFile.open(EventExtractRehashDelRepPre + file, std::ios_base::in);
+		if (!inputFile.is_open())
+			return false;
+		unsigned userOne, userTwo;
+		while (inputFile >> userOne >> userTwo) {
+			if (userOne < minNode)
+				minNode = userOne;
+			if (userOne > maxNode)
+				maxNode = userOne;
+			if (userTwo < minNode)
+				minNode = userTwo;
+			if (userTwo > maxNode)
+				maxNode = userTwo;
+		}
+		inputFile.close();
+	}
+
+	std::cout << "read finish.." << std::endl;/////
+
+	std::vector<int> bitsetVec = std::vector<int>(maxNode + 1);
+	for (unsigned int i = 0; i <= maxNode; ++i)
+		bitsetVec.at(i) = 0;
+	
+	for (const auto &file : vecEventOriginFiles) {
+		std::cout << "min max read: " << file << std::endl;
+
+		std::fstream inputFile;
+		inputFile.open(EventExtractRehashDelRepPre + file, std::ios_base::in);
+		if (!inputFile.is_open())
+			return false;
+		unsigned userOne, userTwo;
+		while (inputFile >> userOne >> userTwo) {
+			if (bitsetVec.at(userOne) == 0)
+				bitsetVec.at(userOne) = 1;
+			if (bitsetVec.at(userTwo) == 0)
+				bitsetVec.at(userTwo) = 1;
+		}
+		inputFile.close();
+	}
+	std::cout << "Read finish... \n\n" << std::endl;
+
+	int notOne = 0;
+	for (unsigned i = 1; i <= maxNode; ++i) {
+		if (bitsetVec.at(i) == 0)
+			notOne++;
+	}
+	std::cout << "notOne = " << notOne << std::endl;
+	std::cout << "min = " << minNode << ", max = " << maxNode << std::endl;
+	getchar();
+
+	return true;
+}
+
+/*
+ *	calculate user overlapping coefficient between different events
+ */
+bool WeiboDataWash::analysisUserOverlap()
+{
+	if (calUserOverCoeffiBetDifEvents(BasicPath::EventExtractRehashDelRepPre, BasicPath::calUserOverlapCoeffiBetDifEvePre))
+		return true;
+	else
+		return false;
+}
+bool WeiboDataWash::calUserOverCoeffiBetDifEvents(const std::string &srcEventPrefix, const std::string &savePrefix)
+{
+	std::vector<std::pair<double, std::pair<int, int>>> resultVec;
+
+	unsigned first, second;
+	for (first = 0; first < vecBigEventFiles.size(); ++first) {
+		std::set<unsigned> firstUserSet;
+		std::set<unsigned> secondUserSet;
+	
+		std::cout << "read file : " << first << std::endl;		////////////////////
+
+		std::fstream firstFile(srcEventPrefix + vecBigEventFiles.at(first), std::ios_base::in);
+		if (!firstFile.is_open()) {
+			std::cerr << "calUserOveCoe(): open " << srcEventPrefix + vecBigEventFiles.at(first) << " error." << std::endl;
+			return false;
+		}
+		unsigned readUser1 = 0, readUser2 = 0;
+		while (firstFile >> readUser1 >> readUser2) {
+			//std::cout << readUser1 << ", " << readUser2 << std::endl;
+			if (isInSet(firstUserSet, readUser1) == false)
+				firstUserSet.insert(readUser1);
+			if (isInSet(firstUserSet, readUser2) == false)
+				firstUserSet.insert(readUser2);
+			//std::cout << "size = " << firstUserSet.size() << std::endl;	
+		}
+		firstFile.close();
+		
+		for (second = first + 1; second < vecBigEventFiles.size(); ++second) {
+			std::cout << "userSet1.size() = " << firstUserSet.size() << " file : " << first << " and " << second << std::endl;	///////////////////////////
+				 
+			secondUserSet.clear();
+			std::fstream secondFile(srcEventPrefix + vecBigEventFiles.at(second), std::ios_base::in);
+			if (!secondFile.is_open()) {
+				std::cerr << "calUserOveCoe(): open " << srcEventPrefix + vecBigEventFiles.at(second) << " error." << std::endl;
+				return false;
+			}
+
+			unsigned readUser3 = 0, readUser4 = 0;
+			while (secondFile >> readUser3 >> readUser4) {
+				//std::cout << readUser3 << ", " << readUser4 << std::endl;
+				if (isInSet(secondUserSet, readUser3) == false)
+					secondUserSet.insert(readUser3);
+				if (isInSet(secondUserSet, readUser4) == false)
+					secondUserSet.insert(readUser4);
+			}
+			secondFile.close();
+
+			std::cout << "first set size = " << firstUserSet.size() << ", second set size = " << secondUserSet.size() << std::endl;			/////////////////
+			double tempRes = calculateSet(firstUserSet, secondUserSet);
+			std::cout << "temp result = " << tempRes << std::endl;			////////////////////
+
+			resultVec.push_back(std::make_pair(tempRes, std::make_pair(first, second)));
+		}
+	}
+
+	// write file
+	auto lambdaVec = [](std::pair<double, std::pair<int, int>> &left, std::pair<double, std::pair<int, int>> &right) -> bool { 
+		return left.first < right.first;
+	};
+	std::sort(resultVec.begin(), resultVec.end(), lambdaVec);
+
+	std::fstream outputFile(savePrefix + "calUserOverCoeffiBetDifEvents", std::ios_base::out);
+	if (!outputFile.is_open()) {
+		std::cerr << "calUserOverCoeffiBetDifEvents() open output file error." << std::endl;
+		return false;
+	}
+	
+	for (const auto &elem : resultVec) {
+		outputFile << vecBigEventFiles.at(elem.second.first) << "\n" << vecBigEventFiles.at(elem.second.second) << "\n" << elem.first << "\n\n";
+	}
+
+	outputFile.close();
+	std::cout << "finish..." << std::endl;
+	return true;
+}
+template<typename T> bool WeiboDataWash::isInSet(std::set<T> &collect, const T data)
+{
+	if (collect.find(data) == collect.end())
+		return false;
+	else
+		return true;
+}
+/*
+ *	计算小的set中元素在大的中出现的比例
+ */
+template<typename T> double WeiboDataWash::calculateSet(std::set<T> &left, std::set<T> &right)
+{
+	if (right.size() > left.size())
+		return calculateSet(right, left);
+
+	long long existTime = 0;
+	for (const auto &i : left) {
+		//if ((std::set<T>::const_iterator iter = right.find(i)) != right.end())
+		//	existTime++;
+		std::set<T>::const_iterator ite = right.find(i);
+		if (ite != right.end())
+			existTime++;
+	}
+	//double result = static_cast<double>(existTime / right.size());
+	if (right.size() == 0) {
+		std::cout << "right set size == 0." << std::endl;
+		return 0;
+	}
+
+	//std::cout << "exist time = " << existTime << std::endl;		/////////////////
+	return (double)(existTime) / (double)(right.size());
 }
